@@ -18,15 +18,22 @@ def main():
         with open(".git/HEAD", "w") as f:
             f.write("ref: refs/heads/main\n")
         print("Initialized git directory")
+        return
     if command == "cat-file":
-        if sys.argv[2] == "-p" and len(sys.argv[3]) == 40:
+        if sys.argv[2] == "-p" and len(sys.argv[3]) == 40 :
             blob_sha = sys.argv[3]
             blob_folder = blob_sha[:2]
             blob_hash = blob_sha[2:]
             path = ".git/objects/" + blob_folder + "/" + blob_hash
-            with open(path, "rb") as f:
-                totalContent = zlib.decompress(f.read())
-                printContentOfFile(totalContent)
+            try:
+                with open(path, 'rb') as f:
+                    totalContent = zlib.decompress(f.read())
+                    printContentOfFile(totalContent)
+                    return
+            except zlib.error as e:
+                 print(f"Error occurred during decompression: {e}")
+            except IOError as e:
+                print(f"File error: {e}")
     if command == "hash-object":
         if sys.argv[2] == "-w" and len(sys.argv[3]) != 0:
             file_name = sys.argv[3]
@@ -41,6 +48,7 @@ def main():
                 with open(sha_file_name, 'wb')  as f:
                     f.write(zlib.compress(contentSHA))
                     print(hash_output, end='')
+                    return
     else:
         raise RuntimeError(f"Unknown command #{command}")
         
