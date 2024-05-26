@@ -19,7 +19,7 @@ def main():
             f.write("ref: refs/heads/main\n")
         print("Initialized git directory")
         return
-    if command == "cat-file":
+    elif command == "cat-file":
         if sys.argv[2] == "-p" and len(sys.argv[3]) == 40 :
             blob_sha = sys.argv[3]
             blob_folder = blob_sha[:2]
@@ -34,7 +34,7 @@ def main():
                  print(f"Error occurred during decompression: {e}")
             except IOError as e:
                 print(f"File error: {e}")
-    if command == "hash-object":
+    elif command == "hash-object":
         if sys.argv[2] == "-w" and len(sys.argv[3]) != 0:
             file_name = sys.argv[3]
             with open(file_name, 'rb') as f:
@@ -49,6 +49,20 @@ def main():
                     f.write(zlib.compress(contentSHA))
                     print(hash_output, end='')
                     return
+    elif command == "ls-tree": #TEST with `python3 app/main.py ls-tree --name-only <tree_sha>`
+        if sys.argv[2] == "--name-only" and len(sys.argv[3]) == 40:
+            tree_sha = sys.argv[3]
+            tree_folder = tree_sha[:2]
+            tree_hash = tree_sha[2:]
+            path = ".git/objects/" + tree_folder + "/" + tree_hash
+            with open(path, 'rb') as f:
+                totalContent = zlib.decompress(f.read())
+                _, binary_data = totalContent.split(b"\x00", maxsplit=1)
+                while binary_data:
+                    mode, dataLeftOver = binary_data.split(b"\x00", maxsplit=1)
+                    modeNumber, modeType = mode.split()
+                    binary_data = dataLeftOver[20:]
+                    print(modeType.decode('utf-8'))
     else:
         raise RuntimeError(f"Unknown command #{command}")
         
