@@ -9,6 +9,43 @@ def printContentOfFile(totalContent):
         decodedContent = contentOfFile.decode('utf-8')
         print(decodedContent.strip(), end='') 
 
+def create_blob(path:str):
+    with open(path, "rb") as f:
+        data = f.read()
+    header = f"blob {len(data)}\0".encode("utf-8")
+    store = header + data
+    sha = hashlib.sha1(store).hexdigest()
+    os.makedirs(f".git/objects/{sha[:2]}", exist_ok=True)
+    with open(f".git/objects/{sha[:2]}/{sha[2:]}", "wb") as f:
+        f.write(zlib.compress(store))
+    return sha
+
+
+def write_tree(path:str):
+    if os.path.isfile(path):
+        return create_blob(path)    
+    contents = sorted(os.listdir(path),
+        key=lambda x: x if os.path.isfile(os.path.join(path, x)) else f"{x}/",
+    )
+    eachEncodedContent = b""
+    for each in contents:
+        if each == ".git":
+            continue
+        eachContentPath = os.path.join(path, each)
+        if os.path.isfile(eachContentPath):
+            eachEncodedContent += f"100644 {each}\0".encode()
+        else: 
+            eachEncodedContent += f"40000 {each}\0".encode()
+        eachItemsha = int.to_bytes(int(write_tree(eachContentPath), base=16), length=20, byteorder="big")
+        eachEncodedContent += eachItemsha
+
+    eachEncodedContent = f"tree {len(eachEncodedContent)}\0".encode() + eachEncodedContent
+    eachItemsha = hashlib.sha1(eachEncodedContent).hexdigest()
+    os.makedirs(f".git/objects/{eachItemsha[:2]}", exist_ok=True)
+    with open(f".git/objects/{eachItemsha[:2]}/{eachItemsha[2:]}", "wb") as f:
+        f.write(zlib.compress(eachEncodedContent))
+    return eachItemsha
+            
 def main():
     command = sys.argv[1]
     if command == "init":
@@ -63,6 +100,8 @@ def main():
                     modeNumber, modeType = mode.split()
                     binary_data = dataLeftOver[20:]
                     print(modeType.decode('utf-8'))
+    elif command == "write-tree":
+        print(write_tree("./"))
     else:
         raise RuntimeError(f"Unknown command #{command}")
         
