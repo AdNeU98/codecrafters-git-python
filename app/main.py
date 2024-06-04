@@ -20,6 +20,15 @@ def create_blob(path:str):
         f.write(zlib.compress(store))
     return sha
 
+def commit(tree_sha, parent_sha, message):
+    content = f"tree {tree_sha}\nparent {parent_sha}\nAnirban Dutta <dutta.an@northeastern.edu>\ncommiter Anirban Dutta <dutta.an@northeastern.edu>\n\n{message}\n"
+    data = f"commit {len(content)}\0{content}".encode()
+    sha = hashlib.sha1(data).hexdigest()
+    os.makedirs(f".git/objects/{sha[:2]}", exist_ok=True)
+    with open(f".git/objects/{sha[:2]}/{sha[2:]}", "wb") as f:
+        f.write(zlib.compress(data))
+    return sha
+
 
 def write_tree(path:str):
     if os.path.isfile(path):
@@ -102,6 +111,13 @@ def main():
                     print(modeType.decode('utf-8'))
     elif command == "write-tree":
         print(write_tree("./"))
+    elif command == "commit-tree":
+        tree_sha = sys.argv[2]
+        parent_sha = sys.argv[4]
+        message = sys.argv[6]
+        sha = commit(tree_sha, parent_sha, message)
+        print(sha)
+
     else:
         raise RuntimeError(f"Unknown command #{command}")
         
